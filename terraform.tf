@@ -29,8 +29,9 @@ terraform {
 
   required_providers {
     github = {
-      source  = "integrations/github"
-      version = "6.0"
+      source = "integrations/github"
+      # Do not upgrade until https://github.com/integrations/terraform-provider-github/issues/2077
+      version = "5.42.0"
     }
   }
 
