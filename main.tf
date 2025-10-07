@@ -57,7 +57,11 @@ resource "github_organization_settings" "main" {
   lifecycle {
     ignore_changes = [
       name,
-      billing_email
+      billing_email,
+
+      # Not availale for free organizations
+      members_can_create_repositories,
+      advanced_security_enabled_for_new_repositories
     ]
   }
 }
@@ -118,7 +122,7 @@ resource "github_branch_protection" "main" {
   }
 
   required_pull_request_reviews {
-    required_approving_review_count = 1
+    required_approving_review_count = 0
     dismiss_stale_reviews           = true
     require_code_owner_reviews      = true
   }
