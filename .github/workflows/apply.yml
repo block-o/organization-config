@@ -1,0 +1,28 @@
+name: Apply
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    name: Apply changes
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TERRAFORM_HCP_STATE_AUTH_TOKEN }}
+      TF_VAR_terraform_github_app_id: ${{ secrets.TERRAFORM_GITHUB_APP_ID }}
+      TF_VAR_terraform_github_app_installation_id: ${{ secrets.TERRAFORM_GITHUB_INSTALLATION_ID }}
+      TF_VAR_terraform_github_app_private_key: ${{ secrets.TERRAFORM_GITHUB_PRIVATE_KEY }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: tofu version
+        uses: dflook/tofu-version@v2
+
+      - name: tofu apply
+        uses: dflook/tofu-apply@v2
+        with:
+          workspace: "organization-config"
+          auto_approve: true

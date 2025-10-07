@@ -1,0 +1,119 @@
+variable "github_organization_name" {
+  type = string
+}
+
+variable "github_organization_description" {
+  type    = string
+  default = ""
+}
+
+variable "github_company_name" {
+  type    = string
+  default = ""
+}
+
+variable "github_billing_email" {
+  type      = string
+  sensitive = true
+}
+
+variable "github_repositories" {
+  description = "Map of repositories to create"
+  type = map(object({
+    description     = string
+    topics          = list(string)
+    visibility      = string
+    has_issues      = bool
+    has_projects    = bool
+    has_wiki        = bool
+    has_downloads   = bool
+    has_discussions = bool
+  }))
+}
+
+resource "github_organization_settings" "main" {
+  name          = var.github_organization_name
+  description   = var.github_organization_description
+  company       = var.github_company_name
+  billing_email = sensitive(var.github_billing_email)
+
+  has_organization_projects                                    = true
+  has_repository_projects                                      = true
+  default_repository_permission                                = "read"
+  members_can_create_repositories                              = false
+  members_can_create_internal_repositories                     = false
+  members_can_create_pages                                     = false
+  members_can_create_private_pages                             = false
+  members_can_create_public_pages                              = false
+  members_can_fork_private_repositories                        = false
+  web_commit_signoff_required                                  = true
+  advanced_security_enabled_for_new_repositories               = true
+  dependabot_alerts_enabled_for_new_repositories               = true
+  dependabot_security_updates_enabled_for_new_repositories     = true
+  dependency_graph_enabled_for_new_repositories                = true
+  secret_scanning_enabled_for_new_repositories                 = true
+  secret_scanning_push_protection_enabled_for_new_repositories = true
+
+  lifecycle {
+    ignore_changes = [
+      name,
+      billing_email
+    ]
+  }
+}
+
+resource "github_repository" "repositories" {
+  for_each = var.github_repositories
+
+  name                        = each.key
+  description                 = each.value.description
+  topics                      = each.value.topics
+  visibility                  = each.value.visibility
+  has_issues                  = each.value.has_issues
+  has_projects                = each.value.has_projects
+  has_wiki                    = each.value.has_wiki
+  has_downloads               = each.value.has_downloads
+  has_discussions             = each.value.has_discussions
+  web_commit_signoff_required = true
+  allow_merge_commit          = false
+  allow_rebase_merge          = false
+  allow_squash_merge          = true
+  allow_auto_merge            = true
+  delete_branch_on_merge      = true
+  vulnerability_alerts        = true
+  archive_on_destroy          = true
+  security_and_analysis {
+    advanced_security {
+      status = "enabled"
+    }
+    secret_scanning {
+      status = "enabled"
+    }
+    secret_scanning_push_protection {
+      status = "enabled"
+    }
+  }
+}
+
+resource "github_branch_protection" "main" {
+  for_each = var.github_repositories
+
+  repository_id = github_repository.repositories[each.key].node_id
+  pattern       = "main"
+
+  require_conversation_resolution = true
+  allows_deletions                = false
+  allows_force_pushes             = false
+
+  required_status_checks {
+    strict = true
+  }
+
+  required_pull_request_reviews {
+    required_approving_review_count = 1
+    dismiss_stale_reviews           = true
+    require_code_owner_reviews      = true
+  }
+
+  enforce_admins = true
+}

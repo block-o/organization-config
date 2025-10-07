@@ -1,0 +1,6 @@
+bin = "$HOME/.local/bin/terraform"
+list_all = false
+opentofu = true
+force_remove = false
+silent = false
+verbose = false

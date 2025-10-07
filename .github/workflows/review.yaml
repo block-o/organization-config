@@ -1,0 +1,37 @@
+name: Review
+
+on: [pull_request]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    name: Review Code Changes
+    env:
+      TF_TOKEN_app_terraform_io: ${{ secrets.TERRAFORM_HCP_STATE_AUTH_TOKEN }}
+      TF_VAR_terraform_github_app_id: ${{ secrets.TERRAFORM_GITHUB_APP_ID }}
+      TF_VAR_terraform_github_app_installation_id: ${{ secrets.TERRAFORM_GITHUB_INSTALLATION_ID }}
+      TF_VAR_terraform_github_app_private_key: ${{ secrets.TERRAFORM_GITHUB_PRIVATE_KEY }}
+      # Requires separate tokens for MR update and organization managment
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: tofu version
+        uses: dflook/tofu-version@v2
+
+      - name: terraform validate
+        uses: dflook/tofu-validate@v2
+
+      - name: terraform fmt
+        uses: dflook/tofu-fmt-check@v2
+
+      - name: terraform plan
+        uses: dflook/tofu-plan@v2
+        with:
+          workspace: "organization-config"
