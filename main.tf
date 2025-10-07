@@ -65,27 +65,34 @@ resource "github_organization_settings" "main" {
 resource "github_repository" "repositories" {
   for_each = var.github_repositories
 
-  name                        = each.key
-  description                 = each.value.description
-  topics                      = each.value.topics
-  visibility                  = each.value.visibility
-  has_issues                  = each.value.has_issues
-  has_projects                = each.value.has_projects
-  has_wiki                    = each.value.has_wiki
-  has_downloads               = each.value.has_downloads
-  has_discussions             = each.value.has_discussions
-  web_commit_signoff_required = true
-  allow_merge_commit          = false
-  allow_rebase_merge          = false
-  allow_squash_merge          = true
-  allow_auto_merge            = true
-  delete_branch_on_merge      = true
-  vulnerability_alerts        = true
-  archive_on_destroy          = true
+  name            = each.key
+  description     = each.value.description
+  topics          = each.value.topics
+  visibility      = each.value.visibility
+  has_issues      = each.value.has_issues
+  has_projects    = each.value.has_projects
+  has_wiki        = each.value.has_wiki
+  has_downloads   = each.value.has_downloads
+  has_discussions = each.value.has_discussions
+  # Requires github provider 5.43+ and cannot upgrade due until https://github.com/integrations/terraform-provider-github/issues/2077 is fixed
+  # web_commit_signoff_required = true
+  allow_merge_commit     = false
+  allow_rebase_merge     = false
+  allow_squash_merge     = true
+  allow_auto_merge       = true
+  delete_branch_on_merge = true
+  vulnerability_alerts   = true
+  archive_on_destroy     = true
+
   security_and_analysis {
-    advanced_security {
-      status = "enabled"
+
+    dynamic "advanced_security" {
+      for_each = each.value.visibility == "public" ? [] : [1]
+      content {
+        status = "enabled"
+      }
     }
+
     secret_scanning {
       status = "enabled"
     }
@@ -101,6 +108,7 @@ resource "github_branch_protection" "main" {
   repository_id = github_repository.repositories[each.key].node_id
   pattern       = "main"
 
+  require_signed_commits          = true
   require_conversation_resolution = true
   allows_deletions                = false
   allows_force_pushes             = false
