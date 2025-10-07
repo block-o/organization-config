@@ -90,26 +90,35 @@ resource "github_repository" "repositories" {
 
   security_and_analysis {
 
-    dynamic "advanced_security" {
-      for_each = each.value.visibility == "public" ? [] : [1]
-      content {
-        status = "enabled"
-      }
+    # The provider doesn handle the free_tier correctly, as Github always implements advanced_security in public projects in all tiers, however only allows to enable it in paid tiers for private projects
+    # In case you try to enable it in publci repos you get the following error: Error: PATCH https://api.github.com/repos/block-o/.github: 422 Advanced security is always available for public repos. []
+    # dynamic "advanced_security" {
+    #   for_each = each.value.visibility == "public" ? [] : [1]
+    #   content {
+    #     status = "enabled"
+    #   }
+    # }
+
+    # feature only available for public repos in free tier
+    secret_scanning {
+      status = each.value.visibility == "public" ? "enabled" : "disabled"
     }
 
-    secret_scanning {
-      status = "enabled"
-    }
+    # feature only available for public repos in free tier
     secret_scanning_push_protection {
-      status = "enabled"
+      status = each.value.visibility == "public" ? "enabled" : "disabled"
     }
   }
 }
 
 resource "github_branch_protection" "main" {
-  for_each = var.github_repositories
+  # feature only available for public repos in free tier
+  for_each = {
+    for k, v in github_repository.repositories : k => v
+    if v.visibility == "public"
+  }
 
-  repository_id = github_repository.repositories[each.key].node_id
+  repository_id = each.value.node_id
   pattern       = "main"
 
   require_signed_commits          = true
